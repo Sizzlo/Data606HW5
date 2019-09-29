@@ -1,0 +1,75 @@
+---
+title: "Data607 HW5"
+author: "Tony Mei"
+date: "9/27/2019"
+output: html_document
+---
+## Loading the required packages
+```{r}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+AlaskaAM<-read.csv("AlaskaAM.csv", header=TRUE, sep=",")
+head(AlaskaAM)
+```
+
+## Renaming the first two columns X,X.1 to Airline and Status
+## Filter out the blank row separating the two airlines
+
+```{r}
+AlaskaAM2<-AlaskaAM %>% 
+  rename(Airline=X, Status=X.1) %>% 
+  filter(Status!="")
+
+```
+
+## Fill the blank row with the correct Airline
+
+```{r}
+AlaskaAM2$Airline<-as.character(AlaskaAM2$Airline)
+AlaskaAM2$Airline[AlaskaAM2$Airline==""]<-c("ALASKA", "AM WEST")
+AlaskaAM2
+```
+
+## Gather the cities under one column City and number of flights column under Number_Flights
+## Split the Number_Flights column into two delayed and on time.
+
+```{r}
+tidydata1<-AlaskaAM2 %>% 
+  gather(City, Number_Flights, Los.Angeles:Seattle) 
+tidydata2<-tidydata1%>% 
+  spread(Status, Number_Flights)
+tidydata2
+```
+##Group the tidydata by Airline and then use summarise function to compute summaries of interest
+
+```{r}
+tidydata2 %>% 
+  group_by(Airline) %>% 
+  summarise(Min_Delays=min(delayed),
+            Max_Delays=max(delayed),
+            Avg_Delays=mean(delayed),
+            Total_Delays=sum(delayed))
+```
+
+Using the summarise function we can calculate the total delays of both airlines. We can tell from the total delays what AM West have more delays compared to Alaska Airline. We also noticed AM West have majority of the delays in the city Phoenix.
+
+Let's put this in a graph because I love graphs.
+
+## Graph Analysis
+```{r}
+ggplot(data = tidydata1, aes(x=Airline,y=Number_Flights))+
+  #geom_point(alpha = 0.5, size = 5, color ='blue')
+  geom_bar(stat = 'identity',aes(fill=Airline))+
+  geom_text(aes(x = Airline, y = Number_Flights, 
+                label = paste(Number_Flights),
+                group = Airline,
+                vjust = -0.4)) +
+  labs(title = "Delays of Airlines & City", 
+       x = "Airline", 
+       y = "Delay Flight Count") +
+  facet_wrap(~City, ncol = 5)+
+  theme_bw()
+```
+
